@@ -1,0 +1,7 @@
+pandas
+openpyxl
+sqlalchemy
+pyside6
+reportlab
+pyinstaller
+
