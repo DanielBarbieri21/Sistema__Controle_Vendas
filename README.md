@@ -8,8 +8,12 @@ Sistema desktop completo para controle e análise de vendas, desenvolvido em Pyt
 - ✅ **Dashboard Interativo**: Visualize vendas em tabela com filtros avançados
 - ✅ **Filtros Avançados**: Filtre por data, cliente e produto
 - ✅ **Geração de PDF**: Exporte relatórios profissionais em PDF
+- ✅ **📊 Gráficos e Visualizações**: Visualize dados com gráficos interativos (linha, barras, pizza)
+- ✅ **📤 Exportação para Excel**: Exporte dados filtrados para Excel com múltiplas abas e formatação profissional
+- ✅ **📄 Relatórios Personalizados**: Gere PDFs com opções personalizadas (completo, resumo, por cliente, por produto)
+- ✅ **📈 Dashboard com Métricas em Tempo Real**: Cards com métricas atualizadas automaticamente a cada 30 segundos
 - ✅ **Banco SQLite**: Armazenamento local e eficiente
-- ✅ **Interface Moderna**: Interface desktop intuitiva e responsiva
+- ✅ **Interface Moderna**: Interface desktop intuitiva e responsiva com tema escuro
 
 ## 📋 Requisitos
 
@@ -44,8 +48,26 @@ python app.py
 
 4. **Gerar PDF**:
    - Aplique os filtros desejados
-   - Clique em "Gerar PDF"
-   - Escolha onde salvar o arquivo
+   - Clique em "Gerar PDF" para relatório simples
+   - Ou clique em "PDF Personalizado" para escolher tipo de relatório e opções
+
+5. **Exportar para Excel**:
+   - Aplique os filtros desejados
+   - Clique em "Exportar Excel"
+   - O arquivo será gerado com múltiplas abas (Vendas Detalhadas, Resumo por Cliente, Resumo por Produto)
+
+6. **Visualizar Gráficos**:
+   - Vá para a aba "Gráficos e Visualizações"
+   - Clique nos botões para visualizar diferentes tipos de gráficos:
+     - **Vendas por Data**: Gráfico de linha mostrando evolução temporal
+     - **Top Produtos**: Gráfico de barras horizontais com os produtos mais vendidos
+     - **Top Clientes**: Gráfico de barras com os principais clientes
+     - **Distribuição**: Gráfico de pizza com distribuição de vendas por produto
+
+7. **Métricas em Tempo Real**:
+   - As métricas no topo da tela são atualizadas automaticamente a cada 30 segundos
+   - Elas refletem os dados filtrados atualmente
+   - Mostram: Total Vendido, Total de Vendas, Clientes Únicos e Produtos Únicos
 
 ## 📁 Estrutura do Projeto
 
@@ -56,8 +78,10 @@ sistema_vendas/
 ├── database.py         # Configuração do banco de dados
 ├── models.py           # Modelos de tabelas (SQLAlchemy)
 ├── import_excel.py     # Função de importação de Excel
-├── dashboard.py        # Interface gráfica principal
-├── pdf_report.py       # Geração de relatórios PDF
+├── dashboard.py        # Interface gráfica principal com métricas e gráficos
+├── pdf_report.py       # Geração de relatórios PDF (simples e personalizados)
+├── export_excel.py     # Exportação de dados para Excel
+├── charts.py           # Módulo de gráficos e visualizações
 ├── vendas.db           # Banco de dados SQLite (criado automaticamente)
 └── requirements.txt    # Dependências do projeto
 ```
@@ -89,11 +113,11 @@ O arquivo `.exe` estará em `dist/SistemaVendas.exe`
 
 ## 🔄 Próximas Melhorias
 
-- [ ] Gráficos e visualizações
 - [ ] Sistema de login e permissões
-- [ ] Exportação para Excel
-- [ ] Relatórios personalizados
-- [ ] Dashboard com métricas em tempo real
+- [ ] Mais tipos de gráficos (scatter, heatmap)
+- [ ] Exportação de gráficos como imagem
+- [ ] Filtros salvos e favoritos
+- [ ] Notificações de novas vendas
 
 
 

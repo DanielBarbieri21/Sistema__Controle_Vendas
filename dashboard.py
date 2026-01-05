@@ -2,15 +2,18 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QPushButton, QTableWidget,
     QTableWidgetItem, QHBoxLayout, QFileDialog,
     QLineEdit, QLabel, QDateEdit, QMessageBox,
-    QCheckBox, QHeaderView, QFrame
+    QCheckBox, QHeaderView, QFrame, QTabWidget,
+    QGridLayout, QComboBox, QDialog, QDialogButtonBox
 )
-from PySide6.QtCore import QDate, Qt
+from PySide6.QtCore import QDate, Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QPalette, QIcon
 import os
 import sys
 import sqlite3
 from import_excel import importar_excel
-from pdf_report import gerar_pdf
+from pdf_report import gerar_pdf, gerar_pdf_personalizado
+from export_excel import exportar_excel, exportar_excel_completo
+from charts import GraficosWidget
 
 class Dashboard(QWidget):
     def __init__(self):
@@ -208,6 +211,9 @@ class Dashboard(QWidget):
         frame_filtros.setLayout(filtros_layout)
         layout.addWidget(frame_filtros)
 
+        # Cards de métricas
+        self.criar_cards_metricas(layout)
+        
         # Botões de ação
         botoes = QHBoxLayout()
         botoes.setSpacing(10)
@@ -226,22 +232,315 @@ class Dashboard(QWidget):
         btn_pdf.setObjectName("btn_pdf")
         btn_pdf.setMinimumWidth(120)
         btn_pdf.clicked.connect(self.exportar_pdf)
+        
+        btn_pdf_personalizado = QPushButton("📊 PDF Personalizado")
+        btn_pdf_personalizado.setObjectName("btn_pdf")
+        btn_pdf_personalizado.setMinimumWidth(150)
+        btn_pdf_personalizado.clicked.connect(self.exportar_pdf_personalizado)
+        
+        btn_exportar_excel = QPushButton("📤 Exportar Excel")
+        btn_exportar_excel.setStyleSheet("""
+            QPushButton {
+                background-color: #9C27B0;
+            }
+            QPushButton:hover {
+                background-color: #7B1FA2;
+            }
+        """)
+        btn_exportar_excel.setMinimumWidth(140)
+        btn_exportar_excel.clicked.connect(self.exportar_para_excel)
 
         botoes.addWidget(btn_excel)
         botoes.addWidget(btn_deletar)
         botoes.addWidget(btn_pdf)
+        botoes.addWidget(btn_pdf_personalizado)
+        botoes.addWidget(btn_exportar_excel)
         botoes.addStretch()
 
         layout.addLayout(botoes)
 
-        # Tabela com tamanho mínimo
+        # Abas para tabela e gráficos
+        self.tabs = QTabWidget()
+        self.tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #444;
+                background-color: #2b2b2b;
+            }
+            QTabBar::tab {
+                background-color: #444;
+                color: white;
+                padding: 8px 20px;
+                margin-right: 2px;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+            }
+            QTabBar::tab:selected {
+                background-color: #2196F3;
+            }
+            QTabBar::tab:hover {
+                background-color: #555;
+            }
+        """)
+        
+        # Aba de Tabela
+        tab_tabela = QWidget()
+        tab_tabela_layout = QVBoxLayout()
         self.tabela = QTableWidget()
         self.tabela.setMinimumHeight(300)
-        layout.addWidget(self.tabela)
+        tab_tabela_layout.addWidget(self.tabela)
+        tab_tabela.setLayout(tab_tabela_layout)
+        self.tabs.addTab(tab_tabela, "📋 Tabela de Vendas")
+        
+        # Aba de Gráficos
+        tab_graficos = QWidget()
+        tab_graficos_layout = QVBoxLayout()
+        
+        # Controles de gráficos
+        controles_graficos = QHBoxLayout()
+        btn_grafico_data = QPushButton("📈 Vendas por Data")
+        btn_grafico_data.clicked.connect(lambda: self.mostrar_grafico('data'))
+        btn_grafico_produtos = QPushButton("📊 Top Produtos")
+        btn_grafico_produtos.clicked.connect(lambda: self.mostrar_grafico('produtos'))
+        btn_grafico_clientes = QPushButton("👥 Top Clientes")
+        btn_grafico_clientes.clicked.connect(lambda: self.mostrar_grafico('clientes'))
+        btn_grafico_pizza = QPushButton("🍰 Distribuição")
+        btn_grafico_pizza.clicked.connect(lambda: self.mostrar_grafico('pizza'))
+        
+        controles_graficos.addWidget(btn_grafico_data)
+        controles_graficos.addWidget(btn_grafico_produtos)
+        controles_graficos.addWidget(btn_grafico_clientes)
+        controles_graficos.addWidget(btn_grafico_pizza)
+        controles_graficos.addStretch()
+        
+        tab_graficos_layout.addLayout(controles_graficos)
+        
+        # Widget de gráficos
+        self.graficos_widget = GraficosWidget()
+        tab_graficos_layout.addWidget(self.graficos_widget.canvas)
+        tab_graficos.setLayout(tab_graficos_layout)
+        self.tabs.addTab(tab_graficos, "📈 Gráficos e Visualizações")
+        
+        layout.addWidget(self.tabs)
 
         self.setLayout(layout)
         self.dados = []
+        
+        # Timer para atualizar métricas a cada 30 segundos
+        self.timer_metricas = QTimer()
+        self.timer_metricas.timeout.connect(self.atualizar_metricas)
+        self.timer_metricas.start(30000)  # 30 segundos
+        
         self.carregar_dados()
+        self.atualizar_metricas()
+    
+    def criar_cards_metricas(self, layout):
+        """Cria cards com métricas em tempo real"""
+        frame_metricas = QFrame()
+        frame_metricas.setStyleSheet("QFrame { background-color: #333333; border-radius: 8px; padding: 15px; border: 1px solid #444; }")
+        metricas_layout = QGridLayout()
+        metricas_layout.setSpacing(15)
+        
+        # Card 1: Total de Vendas
+        card1 = self.criar_card_metrica("💰 Total Vendido", "R$ 0,00", "#4CAF50")
+        metricas_layout.addWidget(card1, 0, 0)
+        
+        # Card 2: Número de Vendas
+        card2 = self.criar_card_metrica("📦 Total de Vendas", "0", "#2196F3")
+        metricas_layout.addWidget(card2, 0, 1)
+        
+        # Card 3: Clientes Únicos
+        card3 = self.criar_card_metrica("👥 Clientes Únicos", "0", "#FF9800")
+        metricas_layout.addWidget(card3, 0, 2)
+        
+        # Card 4: Produtos Únicos
+        card4 = self.criar_card_metrica("📦 Produtos Únicos", "0", "#9C27B0")
+        metricas_layout.addWidget(card4, 0, 3)
+        
+        self.label_total_vendido = card1.findChild(QLabel, "valor")
+        self.label_total_vendas = card2.findChild(QLabel, "valor")
+        self.label_clientes_unicos = card3.findChild(QLabel, "valor")
+        self.label_produtos_unicos = card4.findChild(QLabel, "valor")
+        
+        frame_metricas.setLayout(metricas_layout)
+        layout.addWidget(frame_metricas)
+    
+    def criar_card_metrica(self, titulo, valor, cor):
+        """Cria um card individual de métrica"""
+        card = QFrame()
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: {cor};
+                border-radius: 8px;
+                padding: 15px;
+                min-width: 200px;
+            }}
+        """)
+        card_layout = QVBoxLayout()
+        
+        label_titulo = QLabel(titulo)
+        label_titulo.setStyleSheet("color: white; font-size: 12px; font-weight: 500;")
+        label_titulo.setAlignment(Qt.AlignCenter)
+        
+        label_valor = QLabel(valor)
+        label_valor.setObjectName("valor")
+        label_valor.setStyleSheet("color: white; font-size: 20px; font-weight: bold;")
+        label_valor.setAlignment(Qt.AlignCenter)
+        
+        card_layout.addWidget(label_titulo)
+        card_layout.addWidget(label_valor)
+        card.setLayout(card_layout)
+        
+        return card
+    
+    def atualizar_metricas(self):
+        """Atualiza as métricas em tempo real"""
+        try:
+            conn = sqlite3.connect("vendas.db")
+            cursor = conn.cursor()
+            
+            # Aplicar filtros
+            query = """
+                SELECT COUNT(DISTINCT v.id) as total_vendas,
+                       SUM(v.valor_total) as total_valor,
+                       COUNT(DISTINCT v.cliente_nome) as clientes_unicos,
+                       COUNT(DISTINCT i.produto) as produtos_unicos
+                FROM vendas v
+                JOIN itens_venda i ON i.venda_id = v.id
+                WHERE 1=1
+            """
+            
+            params = []
+            
+            if hasattr(self, 'filtro_data_inicio') and self.filtro_data_inicio.date():
+                query += " AND (v.data_venda IS NULL OR v.data_venda >= ?)"
+                params.append(self.filtro_data_inicio.date().toString("yyyy-MM-dd"))
+            
+            if hasattr(self, 'filtro_data_fim') and self.filtro_data_fim.date():
+                query += " AND (v.data_venda IS NULL OR v.data_venda <= ?)"
+                params.append(self.filtro_data_fim.date().toString("yyyy-MM-dd"))
+            
+            if hasattr(self, 'filtro_cliente') and self.filtro_cliente.text():
+                query += " AND v.cliente_nome LIKE ?"
+                params.append(f"%{self.filtro_cliente.text()}%")
+            
+            if hasattr(self, 'filtro_produto') and self.filtro_produto.text():
+                query += " AND i.produto LIKE ?"
+                params.append(f"%{self.filtro_produto.text()}%")
+            
+            cursor.execute(query, params)
+            resultado = cursor.fetchone()
+            conn.close()
+            
+            if resultado:
+                total_vendas = resultado[0] or 0
+                total_valor = resultado[1] or 0
+                clientes_unicos = resultado[2] or 0
+                produtos_unicos = resultado[3] or 0
+                
+                if self.label_total_vendido:
+                    self.label_total_vendido.setText(f"R$ {total_valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+                if self.label_total_vendas:
+                    self.label_total_vendas.setText(str(total_vendas))
+                if self.label_clientes_unicos:
+                    self.label_clientes_unicos.setText(str(clientes_unicos))
+                if self.label_produtos_unicos:
+                    self.label_produtos_unicos.setText(str(produtos_unicos))
+        except Exception as e:
+            print(f"Erro ao atualizar métricas: {e}")
+    
+    def mostrar_grafico(self, tipo):
+        """Mostra gráfico do tipo especificado"""
+        filtro_data_inicio = self.filtro_data_inicio.date() if hasattr(self, 'filtro_data_inicio') else None
+        filtro_data_fim = self.filtro_data_fim.date() if hasattr(self, 'filtro_data_fim') else None
+        filtro_cliente = self.filtro_cliente.text() if hasattr(self, 'filtro_cliente') and self.filtro_cliente.text() else None
+        filtro_produto = self.filtro_produto.text() if hasattr(self, 'filtro_produto') and self.filtro_produto.text() else None
+        
+        if tipo == 'data':
+            self.graficos_widget.grafico_vendas_por_data(filtro_data_inicio, filtro_data_fim, filtro_cliente, filtro_produto)
+        elif tipo == 'produtos':
+            self.graficos_widget.grafico_top_produtos(10, filtro_data_inicio, filtro_data_fim, filtro_cliente, filtro_produto)
+        elif tipo == 'clientes':
+            self.graficos_widget.grafico_vendas_por_cliente(10, filtro_data_inicio, filtro_data_fim, filtro_cliente, filtro_produto)
+        elif tipo == 'pizza':
+            self.graficos_widget.grafico_pizza_categorias(filtro_data_inicio, filtro_data_fim, filtro_cliente, filtro_produto)
+    
+    def exportar_pdf_personalizado(self):
+        """Exporta PDF com opções personalizadas"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Gerar PDF Personalizado")
+        dialog.setMinimumWidth(400)
+        layout = QVBoxLayout()
+        
+        # Tipo de relatório
+        layout.addWidget(QLabel("Tipo de Relatório:"))
+        combo_tipo = QComboBox()
+        combo_tipo.addItems(["completo", "resumo", "por_cliente", "por_produto"])
+        layout.addWidget(combo_tipo)
+        
+        # Opções
+        check_resumo = QCheckBox("Incluir Resumo Executivo")
+        check_resumo.setChecked(True)
+        layout.addWidget(check_resumo)
+        
+        check_estatisticas = QCheckBox("Incluir Estatísticas")
+        check_estatisticas.setChecked(True)
+        layout.addWidget(check_estatisticas)
+        
+        # Botões
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        
+        dialog.setLayout(layout)
+        
+        if dialog.exec() == QDialog.Accepted:
+            arquivo, _ = QFileDialog.getSaveFileName(
+                self, "Salvar PDF Personalizado", "relatorio_personalizado.pdf", "*.pdf"
+            )
+            if arquivo:
+                try:
+                    filtro_data_inicio = self.filtro_data_inicio.date() if self.filtro_data_inicio.date() else None
+                    filtro_data_fim = self.filtro_data_fim.date() if self.filtro_data_fim.date() else None
+                    filtro_cliente = self.filtro_cliente.text() if self.filtro_cliente.text() else None
+                    filtro_produto = self.filtro_produto.text() if self.filtro_produto.text() else None
+                    
+                    gerar_pdf_personalizado(
+                        arquivo,
+                        combo_tipo.currentText(),
+                        filtro_data_inicio,
+                        filtro_data_fim,
+                        filtro_cliente,
+                        filtro_produto,
+                        check_resumo.isChecked(),
+                        check_estatisticas.isChecked()
+                    )
+                    QMessageBox.information(self, "Sucesso", f"PDF personalizado gerado: {arquivo}")
+                except Exception as e:
+                    QMessageBox.critical(self, "Erro", f"Erro ao gerar PDF: {str(e)}")
+    
+    def exportar_para_excel(self):
+        """Exporta dados para Excel"""
+        arquivo, _ = QFileDialog.getSaveFileName(
+            self, "Salvar Excel", "vendas_exportadas.xlsx", "*.xlsx"
+        )
+        if arquivo:
+            try:
+                filtro_data_inicio = self.filtro_data_inicio.date() if self.filtro_data_inicio.date() else None
+                filtro_data_fim = self.filtro_data_fim.date() if self.filtro_data_fim.date() else None
+                filtro_cliente = self.filtro_cliente.text() if self.filtro_cliente.text() else None
+                filtro_produto = self.filtro_produto.text() if self.filtro_produto.text() else None
+                
+                exportar_excel_completo(
+                    arquivo,
+                    filtro_data_inicio,
+                    filtro_data_fim,
+                    filtro_cliente,
+                    filtro_produto
+                )
+                QMessageBox.information(self, "Sucesso", f"Excel exportado: {arquivo}")
+            except Exception as e:
+                QMessageBox.critical(self, "Erro", f"Erro ao exportar Excel: {str(e)}")
 
     def importar(self):
         arquivo, _ = QFileDialog.getOpenFileName(
@@ -256,6 +555,7 @@ class Dashboard(QWidget):
                     self, "Sucesso", mensagem
                 )
                 self.carregar_dados()
+                self.atualizar_metricas()
             except FileNotFoundError as e:
                 QMessageBox.critical(
                     self, "Erro", f"Arquivo não encontrado:\n{str(e)}"
@@ -489,8 +789,10 @@ class Dashboard(QWidget):
                     f"{len(linhas_selecionadas)} venda(s) deletada(s) com sucesso!"
                 )
                 
-                # Recarregar dados
+                # Recarregar dados e métricas
                 self.carregar_dados()
+                self.atualizar_metricas()
+                self.atualizar_metricas()
                 
             except Exception as e:
                 QMessageBox.critical(

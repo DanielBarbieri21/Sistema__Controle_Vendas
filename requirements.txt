@@ -4,4 +4,6 @@ sqlalchemy
 pyside6
 reportlab
 pyinstaller
+matplotlib
+numpy
 
