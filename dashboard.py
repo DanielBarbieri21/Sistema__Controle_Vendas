@@ -144,75 +144,148 @@ class Dashboard(QWidget):
             }
         """)
 
-        layout = QVBoxLayout()
-        layout.setSpacing(15)
-        layout.setContentsMargins(15, 15, 15, 15)
+        # Layout principal em duas colunas: esquerda (dashboard) e direita (filtros)
+        main_layout = QHBoxLayout()
+        main_layout.setSpacing(15)
+        main_layout.setContentsMargins(15, 15, 15, 15)
 
-        # Frame para filtros
+        # Coluna esquerda: cards, botões e abas
+        left_layout = QVBoxLayout()
+        left_layout.setSpacing(15)
+
+        # Coluna direita: painel de filtros (sidebar)
+        right_layout = QVBoxLayout()
+        right_layout.setSpacing(0)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Frame para filtros - sidebar fixa à direita
         frame_filtros = QFrame()
-        frame_filtros.setStyleSheet("QFrame { background-color: #333333; border-radius: 8px; padding: 15px; border: 1px solid #444; }")
+        frame_filtros.setStyleSheet("""
+            QFrame { 
+                background-color: #2a2a2a; 
+                border-radius: 8px; 
+                padding: 20px; 
+                border: 2px solid #444; 
+            }
+        """)
+        frame_filtros.setFixedWidth(320)
+        frame_filtros.setMinimumHeight(600)
+        
         filtros_layout = QVBoxLayout()
-        filtros_layout.setSpacing(10)
+        filtros_layout.setSpacing(15)
+        filtros_layout.setContentsMargins(0, 0, 0, 0)
         
         # Título dos filtros
         titulo_filtros = QLabel("🔍 Filtros de Busca")
-        titulo_filtros.setStyleSheet("font-size: 14px; font-weight: bold; color: #64B5F6; margin-bottom: 10px;")
+        titulo_filtros.setStyleSheet("""
+            font-size: 16px; 
+            font-weight: bold; 
+            color: #64B5F6; 
+            padding-bottom: 10px;
+            border-bottom: 2px solid #444;
+        """)
         filtros_layout.addWidget(titulo_filtros)
-        
-        # Linha de filtros - layout responsivo
-        filtros = QHBoxLayout()
-        filtros.setSpacing(10)
         
         # Data Início
         label_data_inicio = QLabel("📅 Data Início:")
-        label_data_inicio.setMinimumWidth(100)
-        filtros.addWidget(label_data_inicio)
+        label_data_inicio.setStyleSheet("color: #ffffff; font-weight: 500; margin-top: 5px;")
+        filtros_layout.addWidget(label_data_inicio)
         self.filtro_data_inicio = QDateEdit()
         self.filtro_data_inicio.setDate(QDate.currentDate().addMonths(-1))
         self.filtro_data_inicio.setCalendarPopup(True)
-        self.filtro_data_inicio.setMinimumWidth(120)
-        filtros.addWidget(self.filtro_data_inicio)
+        self.filtro_data_inicio.setMinimumWidth(280)
+        self.filtro_data_inicio.setMaximumWidth(280)
+        filtros_layout.addWidget(self.filtro_data_inicio)
 
         # Data Fim
         label_data_fim = QLabel("📅 Data Fim:")
-        label_data_fim.setMinimumWidth(100)
-        filtros.addWidget(label_data_fim)
+        label_data_fim.setStyleSheet("color: #ffffff; font-weight: 500; margin-top: 5px;")
+        filtros_layout.addWidget(label_data_fim)
         self.filtro_data_fim = QDateEdit()
         self.filtro_data_fim.setDate(QDate.currentDate())
         self.filtro_data_fim.setCalendarPopup(True)
-        self.filtro_data_fim.setMinimumWidth(120)
-        filtros.addWidget(self.filtro_data_fim)
+        self.filtro_data_fim.setMinimumWidth(280)
+        self.filtro_data_fim.setMaximumWidth(280)
+        filtros_layout.addWidget(self.filtro_data_fim)
 
         # Cliente
         label_cliente = QLabel("👤 Cliente:")
-        label_cliente.setMinimumWidth(80)
-        filtros.addWidget(label_cliente)
+        label_cliente.setStyleSheet("color: #ffffff; font-weight: 500; margin-top: 5px;")
+        filtros_layout.addWidget(label_cliente)
         self.filtro_cliente = QLineEdit()
-        self.filtro_cliente.setPlaceholderText("Filtrar por cliente")
-        self.filtro_cliente.setMinimumWidth(150)
-        filtros.addWidget(self.filtro_cliente)
+        self.filtro_cliente.setPlaceholderText("Digite o nome do cliente...")
+        self.filtro_cliente.setMinimumWidth(280)
+        self.filtro_cliente.setMaximumWidth(280)
+        filtros_layout.addWidget(self.filtro_cliente)
 
         # Produto
         label_produto = QLabel("📦 Produto:")
-        label_produto.setMinimumWidth(80)
-        filtros.addWidget(label_produto)
+        label_produto.setStyleSheet("color: #ffffff; font-weight: 500; margin-top: 5px;")
+        filtros_layout.addWidget(label_produto)
         self.filtro_produto = QLineEdit()
-        self.filtro_produto.setPlaceholderText("Filtrar por produto")
-        self.filtro_produto.setMinimumWidth(150)
-        filtros.addWidget(self.filtro_produto)
+        self.filtro_produto.setPlaceholderText("Digite o nome do produto...")
+        self.filtro_produto.setMinimumWidth(280)
+        self.filtro_produto.setMaximumWidth(280)
+        filtros_layout.addWidget(self.filtro_produto)
 
-        btn_filtrar = QPushButton("🔍 Filtrar")
-        btn_filtrar.setMinimumWidth(100)
+        # Botão Filtrar
+        btn_filtrar = QPushButton("🔍 Aplicar Filtros")
+        btn_filtrar.setMinimumWidth(280)
+        btn_filtrar.setMaximumWidth(280)
+        btn_filtrar.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 12px;
+                border-radius: 6px;
+                font-weight: 600;
+                font-size: 13px;
+                margin-top: 10px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+            QPushButton:pressed {
+                background-color: #3d8b40;
+            }
+        """)
         btn_filtrar.clicked.connect(self.carregar_dados)
-        filtros.addWidget(btn_filtrar)
-        filtros.addStretch()
+        filtros_layout.addWidget(btn_filtrar)
+        
+        # Botão Limpar Filtros
+        btn_limpar = QPushButton("🔄 Limpar Filtros")
+        btn_limpar.setMinimumWidth(280)
+        btn_limpar.setMaximumWidth(280)
+        btn_limpar.setStyleSheet("""
+            QPushButton {
+                background-color: #666;
+                color: white;
+                border: none;
+                padding: 10px;
+                border-radius: 6px;
+                font-weight: 500;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #777;
+            }
+            QPushButton:pressed {
+                background-color: #555;
+            }
+        """)
+        btn_limpar.clicked.connect(self.limpar_filtros)
+        filtros_layout.addWidget(btn_limpar)
 
-        filtros_layout.addLayout(filtros)
+        # Espaçador para empurrar conteúdo para cima
+        filtros_layout.addStretch()
+
         frame_filtros.setLayout(filtros_layout)
-        layout.addWidget(frame_filtros)
+        right_layout.addWidget(frame_filtros)
+        right_layout.addStretch()
 
-        # Cards de métricas
-        self.criar_cards_metricas(layout)
+        # Cards de métricas (ficam na coluna esquerda)
+        self.criar_cards_metricas(left_layout)
         
         # Botões de ação
         botoes = QHBoxLayout()
@@ -257,7 +330,7 @@ class Dashboard(QWidget):
         botoes.addWidget(btn_exportar_excel)
         botoes.addStretch()
 
-        layout.addLayout(botoes)
+        left_layout.addLayout(botoes)
 
         # Abas para tabela e gráficos
         self.tabs = QTabWidget()
@@ -320,9 +393,14 @@ class Dashboard(QWidget):
         tab_graficos.setLayout(tab_graficos_layout)
         self.tabs.addTab(tab_graficos, "📈 Gráficos e Visualizações")
         
-        layout.addWidget(self.tabs)
+        left_layout.addWidget(self.tabs)
 
-        self.setLayout(layout)
+        # Montar layout principal (esquerda: conteúdo, direita: filtros)
+        # Proporção 4:1 - conteúdo principal ocupa mais espaço
+        main_layout.addLayout(left_layout, 4)
+        main_layout.addLayout(right_layout, 1)
+
+        self.setLayout(main_layout)
         self.dados = []
         
         # Timer para atualizar métricas a cada 30 segundos
@@ -743,6 +821,15 @@ class Dashboard(QWidget):
                 QMessageBox.critical(self, "Erro", f"Erro ao carregar dados: {str(e)}")
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro inesperado: {str(e)}")
+
+    def limpar_filtros(self):
+        """Limpa todos os filtros e recarrega os dados"""
+        self.filtro_data_inicio.setDate(QDate.currentDate().addMonths(-1))
+        self.filtro_data_fim.setDate(QDate.currentDate())
+        self.filtro_cliente.clear()
+        self.filtro_produto.clear()
+        self.carregar_dados()
+        self.atualizar_metricas()
 
     def deletar_selecionadas(self):
         """Deleta as vendas selecionadas via checkbox"""
